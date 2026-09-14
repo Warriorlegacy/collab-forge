@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": ".output",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@collab-forge/agent-runtime": ["./packages/agent-runtime/src"],
+      "@collab-forge/shared": ["./packages/shared/src"]
+    }
+  },
+  "include": ["packages/*/src/**/*", "apps/*/src/**/*"],
+  "exclude": ["node_modules", "dist", ".output"]
+}

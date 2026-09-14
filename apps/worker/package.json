@@ -1,0 +1,19 @@
+{
+  "name": "@collab-forge/worker",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "build": "wrangler build",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@collab-forge/agent-runtime": "*",
+    "@collab-forge/shared": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251014.0",
+    "wrangler": "^4.43.0"
+  }
+}
