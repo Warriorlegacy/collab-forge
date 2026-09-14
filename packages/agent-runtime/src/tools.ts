@@ -27,8 +27,7 @@ export class ToolRegistry {
     this.callCounts.set(name, stats);
 
     try {
-      const output = await tool.execute(input, ctx);
-      return { success: true, output, durationMs: Date.now() - start };
+      return await tool.execute(input, ctx);
     } catch (err) {
       stats.errors++;
       this.callCounts.set(name, stats);

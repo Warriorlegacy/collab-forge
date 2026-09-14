@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Square, RotateCcw, Zap, Activity, Users, GitBranch } from "lucide-react";
 import type { AgentNode, AgentEvent, AgentId, AgentStatus } from "@collab-forge/shared";
 import { useAgentRunStore } from "../store/agent-run";
-import { createRun } from "../lib/api";
+import { createRun, connectWebSocket } from "../lib/api";
 
 function buildDefaultNodes(prompt: string): AgentNode[] {
   return [
@@ -19,6 +19,7 @@ export default function AgentIDE() {
   const [isRunning, setIsRunning] = useState(false);
   const [nodes, setNodes] = useState<AgentNode[]>(() => buildDefaultNodes(""));
   const eventLogRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const { activeRunId, runs, createRun, updateRunState, appendEvent, updateAgentStatus } = useAgentRunStore();
 
@@ -30,25 +31,39 @@ export default function AgentIDE() {
     }
   }, [activeRun?.events.length]);
 
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, []);
+
   const handleRun = async () => {
     if (!prompt.trim()) return;
+    setIsRunning(true);
     const runNodes = buildDefaultNodes(prompt);
     setNodes(runNodes);
-    const runId = createRun("demo-user", prompt, runNodes);
-    updateRunState(runId, { status: "running", currentAgentId: runNodes[0].id });
 
-    const orderedNames = ["Planner", "Coder", "Reviewer", "Deployer"];
-    for (let i = 0; i < orderedNames.length; i++) {
-      const node = runNodes[i];
-      updateAgentStatus(runId, node.id, "running");
-      appendEvent(runId, { type: "log", agentId: node.id, level: "info", message: `Starting ${node.name}...`, timestamp: new Date().toISOString() });
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200));
-      appendEvent(runId, { type: "log", agentId: node.id, level: "info", message: `${node.name} completed its work.`, timestamp: new Date().toISOString() });
-      updateAgentStatus(runId, node.id, "done");
+    try {
+      const result = await createRun("demo-user", prompt, runNodes);
+      const runId = result.id;
+      createRun("demo-user", prompt, runNodes);
+      updateRunState(runId, { status: "running", currentAgentId: runNodes[0].id });
+
+      const ws = connectWebSocket(runId, (event) => {
+        appendEvent(runId, event);
+        if ((event as AgentEvent).agentId) {
+          const status = (event as AgentEvent).type === "error" ? "error" : "running";
+          updateAgentStatus(runId, (event as AgentEvent).agentId!, status);
+        }
+      });
+      wsRef.current = ws;
+    } catch (err) {
+      console.error("Failed to create run:", err);
+      setIsRunning(false);
     }
-
-    updateRunState(runId, { status: "completed", currentAgentId: null });
-    setIsRunning(false);
   };
 
   const getNodeStatus = (nodeId: AgentId): AgentStatus | undefined => {

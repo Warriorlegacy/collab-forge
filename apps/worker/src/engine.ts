@@ -227,7 +227,7 @@ Rules:
         }),
       });
     } catch {
-      // Non-critical
+      // Non-critical: event persistence failure shouldn't block execution
     }
   }
 

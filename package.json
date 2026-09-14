@@ -13,12 +13,14 @@
     "dev": "bun run dev:web",
     "dev:web": "cd apps/web && bun run dev",
     "dev:worker": "cd apps/worker && bun run dev",
-    "test": "bun test",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
-    "eslint": "^9.0.0"
+    "eslint": "^9.0.0",
+    "vitest": "^3.0.0"
   }
 }
