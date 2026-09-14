@@ -49,7 +49,6 @@ export default function AgentIDE() {
     try {
       const result = await createRun("demo-user", prompt, runNodes);
       const runId = result.id;
-      createRun("demo-user", prompt, runNodes);
       updateRunState(runId, { status: "running", currentAgentId: runNodes[0].id });
 
       const ws = connectWebSocket(runId, (event) => {
@@ -57,6 +56,10 @@ export default function AgentIDE() {
         if ((event as AgentEvent).agentId) {
           const status = (event as AgentEvent).type === "error" ? "error" : "running";
           updateAgentStatus(runId, (event as AgentEvent).agentId!, status);
+        }
+        if ((event as AgentEvent).type === "complete") {
+          updateRunState(runId, { status: "completed", currentAgentId: null });
+          setIsRunning(false);
         }
       });
       wsRef.current = ws;
@@ -171,20 +174,23 @@ export default function AgentIDE() {
             <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Live Event Stream</h3>
             <div ref={eventLogRef} className="flex-1 overflow-y-auto font-mono text-xs space-y-1 pr-1">
               <AnimatePresence>
-                {activeRun?.events.map((event, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-zinc-400"
-                  >
-                    <span className="text-zinc-600">[{new Date((event as AgentEvent).timestamp).toLocaleTimeString()}]</span>{" "}
-                    <span className="text-amber-400">{(event as AgentEvent).type}</span>
-                    {(event as AgentEvent).type === "log" && (
-                      <span className="text-zinc-300"> {(event as AgentEvent).message}</span>
-                    )}
-                  </motion.div>
-                ))}
+                {activeRun?.events.map((event, i) => {
+                  const ev = event as AgentEvent;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-zinc-400"
+                    >
+                      <span className="text-zinc-600">[{new Date(ev.timestamp).toLocaleTimeString()}]</span>{" "}
+                      <span className={`${ev.type === "error" ? "text-red-400" : ev.type === "complete" ? "text-emerald-400" : "text-amber-400"}`}>{ev.type}</span>
+                      {ev.type === "log" && <span className="text-zinc-300"> {ev.message}</span>}
+                      {ev.type === "tool_call" && <span className="text-zinc-300"> tool:{ev.tool}</span>}
+                      {ev.type === "tool_result" && <span className="text-zinc-300"> {ev.tool} {(ev as unknown as { success?: boolean }).success ? "✓" : "✗"} {(ev as unknown as { durationMs?: number }).durationMs}ms</span>}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
               {(!activeRun || activeRun.events.length === 0) && (
                 <p className="text-zinc-600 italic">Events will appear here when you run a pipeline...</p>

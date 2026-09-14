@@ -27,6 +27,22 @@ app.post("/api/runs", async (c) => {
 
   if (error || !data) return c.json({ error: error?.message ?? "Failed" }, 500);
 
+  const incomingNodes = Array.isArray(body.nodes) ? body.nodes : [];
+  if (incomingNodes.length > 0) {
+    await supabase.from("agent_nodes").insert(
+      incomingNodes.map((node) => ({
+        id: node.id,
+        run_id: data.id,
+        name: node.name,
+        prompt: node.prompt,
+        tools: node.tools,
+        depends_on: node.dependsOn,
+        timeout_ms: node.timeoutMs,
+        max_retries: node.maxRetries,
+      }))
+    );
+  }
+
   const { data: nodesData } = await supabase
     .from("agent_nodes")
     .select("*")

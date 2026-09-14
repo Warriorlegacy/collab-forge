@@ -1,15 +1,18 @@
 const API_BASE = "http://localhost:8787";
 
 export async function createRun(userId: string, prompt: string, nodes: AgentNode[]): Promise<{ id: string; trace_id: string; websocketUrl: string }> {
-  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
-
-  const res = await fetch(`${API_BASE}/api/runs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, prompt, nodes }),
-  });
-  if (!res.ok) throw new Error("Failed to create run");
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, prompt, nodes }),
+    });
+    if (!res.ok) throw new Error("Worker unavailable");
+    return res.json();
+  } catch {
+    const runId = crypto.randomUUID();
+    return { id: runId, trace_id: crypto.randomUUID(), websocketUrl: "" };
+  }
 }
 
 export async function getRun(runId: string): Promise<unknown> {
@@ -33,6 +36,9 @@ export function connectWebSocket(runId: string, onEvent: (event: AgentEvent) => 
     try {
       const msg = JSON.parse(event.data);
       if (msg.type === "event" && msg.event) onEvent(msg.event);
+      if (msg.type === "status") {
+        onEvent({ type: msg.status === "completed" ? "complete" : msg.status, agentId: msg.agentId ?? "", timestamp: new Date().toISOString() } as AgentEvent);
+      }
     } catch {
       // Ignore malformed messages
     }
