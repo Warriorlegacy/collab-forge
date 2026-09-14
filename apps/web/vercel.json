@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd ../.. && bun run build:web",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "env": {
+    "VITE_API_BASE": "@vercel_api_base"
+  }
+}
